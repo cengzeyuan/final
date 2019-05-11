@@ -1,0 +1,169 @@
+1.Canny+Hough
+(test1、test2为例)
+
+imagepath = 'F:\Digital Image Processing\work\The seventh\test1.tif';
+[test1,map] = imread(imagepath);
+test1_main = test1(:,:,1);%读取的tif图像有两个图层，其中第二个图层为空白图层，因此处理时取第一个图层
+figure(1)
+subplot(1,3,1);
+imshow(test1_main)
+title('test1原图');
+%canny
+Canny_test1 = edge(test1_main,'canny');
+subplot(1,3,2);
+imshow(Canny_test1)
+title('test1的canny边缘检测');
+
+%Hough变换
+
+[H,T,R] = hough(Canny_test1);%计算二值图像的标准霍夫变换，H为霍夫变换矩阵，I,R为计算霍夫变换的角度和半径值
+P  = houghpeaks(H,5,'threshold',ceil(0.2*max(H(:))));%提取5个极值点
+x = T(P(:,2)); 
+y = R(P(:,1));
+lines=houghlines(Canny_test1,T,R,P,'FillGap',10,'MinLength',30);%提取线段
+str1 = '基于该边缘检测的Hough变换，极值点为';
+str2 = num2str(5);
+str = [str1,str2];
+figure(1)
+subplot(1,3,3);
+imshow(Canny_test1)
+title(str);
+hold on;
+for k = 1:length(lines)
+xy = [lines(k).point1; lines(k).point2];
+ plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');%画出线段
+plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');%起点
+plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');%终点
+end
+————————————————————————————————————————————————————————————————————————————————————————
+——————————————————————————————————————————————————————————————————————————————————
+
+imagepath = 'F:\Digital Image Processing\work\The seventh\test2.png';
+[test2,map] = imread(imagepath);
+figure(1)
+subplot(1,3,1);
+imshow(test2)
+title('test2原图');
+
+Canny_test2 = edge(test2,'canny');
+subplot(1,3,2);
+imshow(Canny_test2)
+title('test2的canny边缘检测');
+
+%Hough变换
+
+[H,T,R] = hough(Canny_test2);%计算二值图像的标准霍夫变换，H为霍夫变换矩阵，I,R为计算霍夫变换的角度和半径值
+P  = houghpeaks(H,5,'threshold',ceil(0.2*max(H(:))));%提取5个极值点
+x = T(P(:,2)); 
+y = R(P(:,1));
+lines=houghlines(Canny_test2,T,R,P,'FillGap',10,'MinLength',30);%提取线段
+str1 = '基于该边缘检测的Hough变换，极值点为';
+str2 = num2str(5);
+str = [str1,str2];
+figure(1)
+subplot(1,3,3);
+imshow(Canny_test2)
+title(str);
+hold on;
+for k = 1:length(lines)
+xy = [lines(k).point1; lines(k).point2];
+ plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');%画出线段
+plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');%起点
+plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');%终点
+end
+
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+
+2.对test1进行canny、sobel、gaussian-highpass，分别进行Hough直线检测，并改变Hough变换极值点数目
+
+imagepath = 'F:\Digital Image Processing\work\The seventh\test1.tif';
+[test1,map] = imread(imagepath);
+test1_main = test1(:,:,1);%读取的tif图像有两个图层，其中第二个图层为空白图层，因此处理时取第一个图层
+figure(1)
+subplot(2,2,1);
+imshow(test1_main)
+title('test1原图');
+figure(2)
+subplot(2,2,1);
+imshow(test1_main)
+title('test1原图');
+figure(3)
+subplot(2,2,1);
+imshow(test1_main)
+title('test1原图');
+
+%canny
+Canny_test1 = edge(test1_main,'canny');
+figure(1)
+subplot(2,2,2);
+imshow(Canny_test1)
+title('test1的canny边缘检测');
+
+%Gaussian
+f = double(test1_main); 
+F = fft2(f);         
+F = fftshift(F);  
+%Gaussian
+[M,N] = size(F);       
+D0 = 5; %半径
+for i = 1:M 
+    for j = 1:N 
+        D(i,j) = sqrt((i-fix(M/2))^2+(j-fix(N/2))^2);        
+        H(i,j) = 1-exp(-D(i,j)^2/(2*D0^2));          
+        G(i,j) = H(i,j)*F(i,j); 
+    end
+end
+%傅里叶反变换
+g = ifftshift(G); 
+g = ifft2(g); 
+g = uint8(real(g));
+figure(2)
+subplot(2,2,2) 
+imshow(g);
+title('Gaussian-highpass-test3-D0=5');  
+
+%sobel
+sobel_x = [-1 -2 -1;0 0 0 ;1 2 1];%产生sobel垂直梯度模板
+sobel_y = sobel_x'; %矩阵转置产生sobel水平梯度模板
+sobel_test1_x = filter2(sobel_x,test1_main,'same');
+sobel_test1_x = abs(sobel_test1_x); %计算图像的sobel垂直梯度
+sobel_test1_y = filter2(sobel_y,test1_main,'same');
+sobel_test1_y = abs(sobel_test1_y); %计算图像的sobel水平梯度
+sobel_test1 = sobel_test1_x+sobel_test1_y;
+figure(3)
+subplot(2,2,2);
+imshow(sobel_test1)
+title('test1的sobel边缘检测');
+
+%将三种检测拼接成三维矩阵
+test(:,:,1) = Canny_test1;
+test(:,:,2) = g;
+test(:,:,3) = sobel_test1;
+%Hough变换
+number = [5,10];
+len = length(number);
+for j = 1:3
+for i = 1:len
+[H,T,R] = hough(test(:,:,j));%计算二值图像的标准霍夫变换，H为霍夫变换矩阵，I,R为计算霍夫变换的角度和半径值
+P  = houghpeaks(H,number(i),'threshold',ceil(0.2*max(H(:))));%提取number个极值点
+x = T(P(:,2)); 
+y = R(P(:,1));
+lines=houghlines(test(:,:,j),T,R,P,'FillGap',10,'MinLength',30);%提取线段
+str1 = '基于该边缘检测的Hough变换，极值点为';
+str2 = num2str(number(i));
+str = [str1,str2];
+figure(j)
+subplot(2,2,i+2);
+imshow(test(:,:,j))
+title(str);
+hold on;
+for k = 1:length(lines)
+xy = [lines(k).point1; lines(k).point2];
+ plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');%画出线段
+plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');%起点
+plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');%终点
+end
+end
+end
